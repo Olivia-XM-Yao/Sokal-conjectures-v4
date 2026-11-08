@@ -1,0 +1,73 @@
+{VERSION 6 0 "IBM INTEL NT" "6.0" }
+{USTYLETAB {CSTYLE "Maple Input" -1 0 "Courier" 0 1 255 0 0 1 0 1 0 0 
+1 0 0 0 0 1 }{PSTYLE "Normal" -1 0 1 {CSTYLE "" -1 -1 "" 0 1 0 0 0 0 
+0 0 0 0 0 0 0 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "Text Ou
+tput" -1 2 1 {CSTYLE "" -1 -1 "Courier" 1 10 0 0 255 1 0 0 0 0 0 1 3 
+0 3 0 }1 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "" 2 6 1 {CSTYLE "" 
+-1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 2 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 
+-1 0 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 3839 "VerifyLocalTaylorB
+ounds := proc()\n    local CoefficientInterval, q0, w0, eps, qLo, qHi,
+ wLo, wHi,\n          scale, powers, termLo, termHi, k, value1, value2
+, i, j,\n          box, kappaBox, r, finiteBound, eta1, eta2, cauchyBo
+und,\n          displayScale, kappaLower, kappaUpper, finiteUpper,\n  \+
+        cauchyUpper, totalUpper;\n\n    q0 := 3092493386004/10^13;\n  \+
+  w0 := 2320376944290/10^12;\n    eps := 1/10^12;\n    qLo, qHi := q0-
+eps, q0+eps;\n    wLo, wHi := w0-eps, w0+eps;\n    if qLo <= 0 or wLo \+
+<= 0 or qHi+1/200 >= 1/3 or wHi+1/2 >= 3 then\n        error \"the Cau
+chy domain is outside the stated bounds\";\n    end if;\n\n    scale :
+= 10^60;\n    # The coefficient tail in (33) is < 1/scale for i <= 19 \+
+and j <= 9.\n    if 2^(19+2*9+1) >= 3^40 or 2*41^19*820^9*scale >= 3^7
+79 then\n        error \"the coefficient tail estimate fails\";\n    e
+nd if;\n\n    powers := Array(0..40);\n    termLo := Array(0..40);\n  \+
+  termHi := Array(0..40);\n    for k from 0 to 40 do\n        powers[k
+] := k*(k-1)/2;\n        value1 := (-1)^k*scale*wLo^k*qLo^(powers[k]);
+\n        value2 := (-1)^k*scale*wHi^k*qHi^(powers[k]);\n        termL
+o[k] := floor(min(value1, value2));\n        termHi[k] := ceil(max(val
+ue1, value2));\n    end do;\n\n    # Enclose C[i,j] using the signed t
+erm intervals.\n    CoefficientInterval := proc(ii, jj, e, lowerTerms,
+ upperTerms, grid)\n        local index, multiplier, lowerSum, upperSu
+m;\n        # Enclose the omitted tail after scaling.\n        lowerSu
+m, upperSum := -1, 1;\n        for index from ii to 40 do\n           \+
+ if e[index] >= jj then\n                multiplier := binomial(index,
+ ii)*binomial(e[index], jj);\n                lowerSum := lowerSum + m
+ultiplier*lowerTerms[index];\n                upperSum := upperSum + m
+ultiplier*upperTerms[index];\n            end if;\n        end do;\n  \+
+      return [lowerSum/grid, upperSum/grid];\n    end proc;\n\n    kap
+paBox := CoefficientInterval(2, 0, powers, termLo, termHi, scale);\n  \+
+  r := 3/50;\n    finiteBound := 0;\n    for i from 0 to 19 do\n      \+
+  for j from 0 to 9 do\n            if i+2*j >= 3 then\n              \+
+  box := CoefficientInterval(i, j, powers, termLo, termHi, scale);\n  \+
+              finiteBound := finiteBound\n                    + max(ab
+s(box[1]), abs(box[2]))*(3/2)^i*r^(i+2*j-2);\n            end if;\n   \+
+     end do;\n    end do;\n\n    # The terms through k = 4 sum to 8 + \+
+1/9.\n    # From k = 5 the first term is 1/243 and the ratio is <= 1/8
+1.\n    if 8+1/9+(1/243)/(1-1/81) >= 10 then\n        error \"the Cauc
+hy majorant is too large\";\n    end if;\n    eta1 := 3*wHi*r;\n    et
+a2 := 200*qHi*r^2;\n    if eta1 >= 1 or eta2 >= 1 then\n        error \+
+\"the Cauchy ratios are not below one\";\n    end if;\n    cauchyBound
+ := 10/r^2*(eta1^20+eta2^10)/((1-eta1)*(1-eta2));\n\n    # Round the d
+isplayed interval endpoints and upper bounds outward.\n    displayScal
+e := 10^14;\n    kappaLower := floor(displayScale*kappaBox[1]);\n    k
+appaUpper := ceil(displayScale*kappaBox[2]);\n    finiteUpper := ceil(
+displayScale*finiteBound);\n    cauchyUpper := ceil(displayScale*cauch
+yBound);\n    totalUpper := ceil(displayScale*(finiteBound+cauchyBound
+));\n\n    if kappaLower/displayScale < 7033861652/10^10 or\n       ka
+ppaUpper/displayScale > 7033861654/10^10 then\n        error \"the pri
+nted kappa enclosure fails\";\n    end if;\n    if finiteUpper/display
+Scale >= 118838/10^6 or\n       cauchyUpper/displayScale >= 2/1000 or
+\n       totalUpper/displayScale >= 120838/10^6 or 120838/10^6 >= 1/8 \+
+then\n        error \"a printed remainder bound fails\";\n    end if;
+\n\n    printf(\"kappa in [0.%014d, 0.%014d]   PASS\\n\", kappaLower, \+
+kappaUpper);\n    printf(\"Finite Taylor contribution <= 0.%014d < 0.1
+18838   PASS\\n\", finiteUpper);\n    printf(\"Cauchy remainder <= 0.%
+014d < 0.002   PASS\\n\", cauchyUpper);\n    printf(\"Total remainder \+
+<= 0.%014d < 0.120838 < 1/8   PASS\\n\", totalUpper);\nend proc:\n\nVe
+rifyLocalTaylorBounds():" }}{PARA 6 "" 1 "" {TEXT -1 52 "kappa in [0.7
+0338616529259, 0.70338616533741]   PASS" }}{PARA 6 "" 1 "" {TEXT -1 
+64 "Finite Taylor contribution <= 0.11883706829264 < 0.118838   PASS" 
+}}{PARA 6 "" 1 "" {TEXT -1 51 "Cauchy remainder <= 0.00199808027206 < \+
+0.002   PASS" }}{PARA 6 "" 1 "" {TEXT -1 59 "Total remainder <= 0.1208
+3514856469 < 0.120838 < 1/8   PASS" }}}{EXCHG {PARA 0 "> " 0 "" 
+{MPLTEXT 1 0 0 "" }}}}{MARK "0 0 0" 3648 }{VIEWOPTS 1 1 0 1 1 1803 1 
+1 1 1 }{PAGENUMBERS 0 1 2 33 1 1 }
